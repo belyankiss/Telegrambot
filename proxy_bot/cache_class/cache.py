@@ -5,13 +5,13 @@ from asyncio import Lock
 from typing import Any, Optional
 
 
-class CacheUser:
+class Cache:
     _instance = None
     CACHE = {}
     lock = Lock()
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(CacheUser, cls).__new__(cls)
+            cls._instance = super(Cache, cls).__new__(cls)
         return cls._instance
 
     @classmethod
