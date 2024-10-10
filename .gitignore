@@ -1,0 +1,9 @@
+/proxy_bot/loguru.log
+/proxy_bot/db.db
+/proxy_bot/configs.env
+*.xml
+*.log
+*.db
+*.env
+*__pycache__
+
