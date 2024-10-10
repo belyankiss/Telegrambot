@@ -4,6 +4,8 @@ from typing import Optional, Union
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from proxy_bot.constants.msg_constants import ForAdminAfterRegistration
+from proxy_bot.custom_sender.send_class import SendAdmins
 from proxy_bot.db.create_async_session import async_session
 from proxy_bot.db.models import User
 
@@ -11,9 +13,9 @@ from proxy_bot.db.models import User
 class UserRegistration:
     def __init__(self):
         self.session = async_session
+        self.to_admin = SendAdmins()
 
-    @staticmethod
-    async def new_user(session: AsyncSession, event: Union[Message, CallbackQuery]):
+    async def new_user(self, session: AsyncSession, event: Union[Message, CallbackQuery]):
         date = datetime.now()
         referral_id = int(event.text.split()[1]) if "/start " in event.text else None
         user = User(user_id=event.from_user.id,
@@ -24,6 +26,8 @@ class UserRegistration:
         session.add(user)
         await session.commit()
         await session.refresh(user)
+        text = ForAdminAfterRegistration.text.format(username=event.from_user.username)
+        await self.to_admin.to_all_admins(text)  # send message to all admins after registration user
         return user
 
     @staticmethod
