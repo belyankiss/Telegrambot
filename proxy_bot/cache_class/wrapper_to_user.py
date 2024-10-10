@@ -1,9 +1,10 @@
 import functools
 from typing import Union
 
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from proxy_bot.complex_classes.check_cache import CacheUser
+from proxy_bot.constants.msg_constants import IfUserBlocked
 from proxy_bot.db.models import User
 
 
@@ -16,6 +17,7 @@ def user_information(function):
             return await function(event, *args, **kwargs)
         else:
             message = event if isinstance(event, Message) else event.message
-            await message.answer(text="Вы заблокированы!")
+            reply_markup = ReplyKeyboardRemove(remove_keyboard=True)
+            await message.answer(text=IfUserBlocked.text, reply_markup=reply_markup)
 
     return wrapper
