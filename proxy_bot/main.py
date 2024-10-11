@@ -6,6 +6,7 @@ from loguru import logger
 
 from proxy_bot.constants.load_constants import Constant
 from proxy_bot.db.models import create_tables
+from proxy_bot.handlers.user.profile_handler import profile_router
 from proxy_bot.handlers.user.start_handler import start_router
 from proxy_bot.imports import dp, bot
 
@@ -13,7 +14,8 @@ from proxy_bot.imports import dp, bot
 async def main() -> None:
     await create_tables()
     await Constant().load_data()  # load constant for work bot
-    dp.include_router(start_router)
+    dp.include_routers(start_router,
+                       profile_router)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)  # Запуск long-polling
 
