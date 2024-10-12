@@ -1,7 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
-from loguru import logger
 
 from proxy_bot.cache_class.wrapper_to_user import user_information
 from proxy_bot.constants.load_constants import Constant
@@ -15,14 +14,15 @@ start_router = Router()
 @start_router.message(CommandStart(), F.chat.type == 'private')
 @user_information
 async def send_start(msg: Message):
-    logger.debug("Start button pressed")
     if await check_member_user(msg.from_user.id):
-        text = Start.text.format(username=msg.from_user.username)
-        buttons = Start.buttons
-        size = 2
+        start = Start(username=msg.from_user.username)
+        text = start.text
+        buttons = start.buttons
+        size = start.size
     else:
-        text = UserNotMember.text
-        buttons = UserNotMember.buttons
+        not_member = UserNotMember()
+        text = not_member.text
+        buttons = not_member.buttons
         size = 1
     await SendUser(text, buttons, size=size)(msg)
 
@@ -31,17 +31,19 @@ async def send_start(msg: Message):
 @user_information
 async def checking_subscribed(call: CallbackQuery):
     if await check_member_user(call.from_user.id):
-        text = Start.text.format(username=call.from_user.username)
-        buttons = Start.buttons
-        size = 2
+        start = Start(username=call.from_user.username)
+        text = start.text
+        buttons = start.buttons
+        size = start.size
         await SendUser(text, buttons, size=size, delete=True)(call.message)
     else:
-        text = UserNotSubscribe.text
-        buttons = UserNotSubscribe.buttons
+        not_subscribe = UserNotSubscribe()
+        text = not_subscribe.text
+        buttons = not_subscribe.buttons
         size = 1
         await SendUser(text, buttons, size=size, delete=True)(call)
 
 
 @start_router.message(F.text == '/admin', F.chat.type == "private", F.from_user.id.in_(Constant.ADMINS))
 async def admin_panel(msg: Message):
-    await SendUser(AdminPanel.text, AdminPanel.buttons, size=2)(msg)
+    await SendUser(**AdminPanel().__dict__)(msg)
