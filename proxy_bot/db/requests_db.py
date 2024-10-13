@@ -36,7 +36,7 @@ class UserRegistration(BaseSession):
         session.add(user)
         await session.commit()
         await session.refresh(user)
-        text = ForAdminAfterRegistration.text.format(username=event.from_user.username)
+        text = ForAdminAfterRegistration(username=event.from_user.username).text()
         await self.to_admin.to_all_admins(text)  # send message to all admins after registration user
         return user
 
@@ -44,12 +44,12 @@ class UserRegistration(BaseSession):
     async def get_user_by_id(session: AsyncSession, user_id: int) -> Optional[User]:
         return await session.get(User, user_id)
 
-
-    async def update_date_active(self, session: AsyncSession, user_id: int) -> None:
+    async def update_date_active(self, session: AsyncSession, user_id: int, username: Optional[str]) -> None:
         date = datetime.now()
         user = await self.get_user_by_id(session, user_id)
         if user:
             user.date_active = date
+            user.username = username
             await session.commit()
             await session.refresh(user)
 
