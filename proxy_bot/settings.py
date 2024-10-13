@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     CHAT_SUB_LINK: str
     CHAT_NAME: str
     CRYPTOBOT_TOKEN: str
+    XROCKET_TOKEN: str
+    YOOMONEY_CLIENT_ID: str
+    YOOMONEY_TOKEN: str
     HREF_REF: str
     PERCENTAGE_FROM_REF: float
     NAME_BOT: str
@@ -38,6 +41,9 @@ class Settings(BaseSettings):
                 self.CHAT_SUB_LINK,
                 self.CHAT_NAME,
                 self.CRYPTOBOT_TOKEN,
+                self.XROCKET_TOKEN,
+                self.YOOMONEY_CLIENT_ID,
+                self.YOOMONEY_TOKEN,
                 self.HREF_REF,
                 self.PERCENTAGE_FROM_REF,
                 self.NAME_BOT,
