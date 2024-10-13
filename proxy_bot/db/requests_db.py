@@ -71,10 +71,10 @@ class UserProfile(BaseSession):
                     func.coalesce(func.sum(User.referral_balance), 0).label('referral_income'),
                     func.coalesce(func.count(referral_alias.user_id), 0).label('referral_count')
                 )
-                .outerjoin(Purchase, Purchase.user_id == User.user_id)
+                .outerjoin(Purchase, Purchase.user_id.is_(User.user_id))
                 .outerjoin(referral_alias,
-                           referral_alias.referral_id == User.user_id)  # Используем алиас для соединения
-                .where(User.user_id == self.user_id)
+                           referral_alias.referral_id.is_(User.user_id))  # Используем алиас для соединения
+                .where(User.user_id.is_(self.user_id))
                 .group_by(User.user_id)
             )
 
@@ -91,12 +91,12 @@ class UserProfile(BaseSession):
 
     async def get_user_purchases(self) -> List[Optional[Purchase]]:
         async with self.session() as session:
-            stmt = select(Purchase).where(Purchase.user_id == self.user_id)
+            stmt = select(Purchase).where(Purchase.user_id.is_(self.user_id))
             return list(await session.scalars(stmt))
 
     async def get_one_purchase(self, purchase_id: int) -> dict:
         async with self.session() as session:
-            result: Purchase = await session.scalar(select(Purchase).where(Purchase.id == purchase_id))
+            result: Purchase = await session.scalar(select(Purchase).where(Purchase.id.is_(purchase_id)))
             product_name = getattr(ShortButton, result.product_type)
             if result.product_type == 'work':
                 data = {
