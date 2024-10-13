@@ -15,35 +15,20 @@ start_router = Router()
 @user_information
 async def send_start(msg: Message):
     if await check_member_user(msg.from_user.id):
-        start = Start(username=msg.from_user.username)
-        text = start.text
-        buttons = start.buttons
-        size = start.size
+        await SendUser(**Start(username=msg.from_user.username)())(msg)
     else:
-        not_member = UserNotMember()
-        text = not_member.text
-        buttons = not_member.buttons
-        size = 1
-    await SendUser(text, buttons, size=size)(msg)
+        await SendUser(**UserNotMember()())(msg)
 
 
 @start_router.callback_query(F.data == 'check_subscribe')
 @user_information
 async def checking_subscribed(call: CallbackQuery):
     if await check_member_user(call.from_user.id):
-        start = Start(username=call.from_user.username)
-        text = start.text
-        buttons = start.buttons
-        size = start.size
-        await SendUser(text, buttons, size=size, delete=True)(call.message)
+        await SendUser(**Start(username=call.from_user.username)(), delete=True)(call.message)
     else:
-        not_subscribe = UserNotSubscribe()
-        text = not_subscribe.text
-        buttons = not_subscribe.buttons
-        size = 1
-        await SendUser(text, buttons, size=size, delete=True)(call)
+        await SendUser(**UserNotSubscribe()(), delete=True)(call)
 
 
 @start_router.message(F.text == '/admin', F.chat.type == "private", F.from_user.id.in_(Constant.ADMINS))
 async def admin_panel(msg: Message):
-    await SendUser(**AdminPanel().__dict__)(msg)
+    await SendUser(**AdminPanel()())(msg)

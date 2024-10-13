@@ -17,6 +17,6 @@ def user_information(function):
             return await function(event, *args, **kwargs)
         else:
             message = event if isinstance(event, Message) else event.message
-            await message.answer(text=IfUserBlocked().text, reply_markup=ReplyKeyboardRemove(remove_keyboard=True))
+            await message.answer(IfUserBlocked().text(), reply_markup=ReplyKeyboardRemove(remove_keyboard=True))
 
     return wrapper

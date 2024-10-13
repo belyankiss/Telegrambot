@@ -27,29 +27,26 @@ async def profile_1(event: Union[Message, CallbackQuery], state: FSMContext):
     await state.clear()
     user_profile = UserProfile(event.from_user.id)
     data_for_profile = await user_profile.get_info_user_for_profile()
-    profile_user = MainProfile(data_for_profile)
-    await SendUser(profile_user.text, profile_user.buttons)(event)
+    await SendUser(**MainProfile(user_data=data_for_profile)())(event)
 
 
 @profile_router.callback_query(F.data == 'purchases')
 async def profile_2(call: CallbackQuery):
     user_profile = UserProfile(call.from_user.id)
     list_purchases = await user_profile.get_user_purchases()
-    all_purchases = UserPurchasesPage(list_purchases)
-    await SendUser(all_purchases.text, all_purchases.buttons, all_purchases.size)(call)
+    await SendUser(**UserPurchasesPage(list_purchases=list_purchases)())(call)
 
 
 @profile_router.callback_query(F.data.startswith('purchase_user'))
 async def profile_3(call: CallbackQuery):
     user_profile = UserProfile(call.from_user.id)
     data_purchase = await user_profile.get_one_purchase(int(call.data.split(':')[1]))
-    single_purchase = ForSinglePurchase(data_purchase)
-    await SendUser(single_purchase.text, single_purchase.buttons)(call)
+    await SendUser(**ForSinglePurchase(data_purchase=data_purchase)())(call)
 
 
 @profile_router.callback_query(F.data == 'payment')
 async def profile_3(call: CallbackQuery):
-    await SendUser(**ChoosePayment().__dict__)(call)
+    await SendUser(**ChoosePayment()())(call)
 
 
 @profile_router.callback_query(F.data == 'msg_admin')
