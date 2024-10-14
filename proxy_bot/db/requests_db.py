@@ -125,3 +125,9 @@ class UserProfile(BaseSession):
                 }
 
             return data
+
+    async def update_balance(self, amount: float):
+        async with self.session() as session:
+            user = await session.get(User, self.user_id)
+            user.balance += round(amount, 2)
+            await session.commit()
