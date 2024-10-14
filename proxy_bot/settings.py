@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     CRYPTOBOT_TOKEN: str
     XROCKET_TOKEN: str
     YOOMONEY_CLIENT_ID: str
+    RECEIVER_YOOMONEY: str
     YOOMONEY_TOKEN: str
     HREF_REF: str
     PERCENTAGE_FROM_REF: float
@@ -43,6 +44,7 @@ class Settings(BaseSettings):
                 self.CRYPTOBOT_TOKEN,
                 self.XROCKET_TOKEN,
                 self.YOOMONEY_CLIENT_ID,
+                self.RECEIVER_YOOMONEY,
                 self.YOOMONEY_TOKEN,
                 self.HREF_REF,
                 self.PERCENTAGE_FROM_REF,
