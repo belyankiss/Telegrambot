@@ -194,17 +194,80 @@ class WriteToAdministration:
 
 # payments page
 
-class ChoicePayment:
-    cryptobot = ('<b>♻️ Оплата будет производиться через</b> <a href="https://t.me/CryptoBot">CryptoBot</a> \n'
-                 '<b>❗ Валюта для оплаты:</b> <i>RUB</i>\n\n'
-                 '✍️ <b>Введите сумму пополнения:</b>')
-    yoomoney = ('<b>♻️ Оплата будет производиться через</b> <a href="https://yoomoney.ru">YooMoney</a> \n'
-                '<b>❗ Валюта для оплаты:</b> <i>RUB</i>\n\n'
+class ChoicePayment(CreatorMessages):
+    def text(self):
+        if self.kwargs['payment'] == 'cryptobot':
+            return ('<b>♻️ Оплата будет производиться через</b> <a href="https://t.me/CryptoBot">CryptoBot</a> \n'
+                    '<b>❗ Валюта для оплаты:</b> <i>RUB</i>\n\n'
+                    '✍️ <b>Введите сумму пополнения:</b>')
+        elif self.kwargs['payment'] == 'yoomoney':
+            return ('<b>♻️ Оплата будет производиться через</b> <a href="https://yoomoney.ru">YooMoney</a> \n'
+                    '<b>❗ Валюта для оплаты:</b> <i>RUB</i>\n\n'
+                    '✍️ <b>Введите сумму пополнения:</b>')
+        else:
+            return ('<b>♻️ Оплата будет производиться через</b> <a href="https://t.me/@tonRocketBot">xRocket</a> \n'
+                    '<b>❗ Валюта для оплаты:</b> <i>RUB</i>\n\n'
+                    '✍️ <b>Выберите монету для оплаты:</b>')
+
+    def buttons(self):
+        back_payment_button = {ShortButton.BACK: 'payment'}
+        if self.kwargs['payment'] == 'cryptobot' or self.kwargs['payment'] == 'yoomoney':
+            return back_payment_button
+        else:
+            self.size = 2
+            x_buttons = {}
+            currencies = ["XROCK", "TONCOIN", "BTC", "USDT", "TRX", "ETH", "BNB"]
+            for cur in currencies:
+                x_buttons[cur] = f'x_cur:{cur}'
+            return x_buttons | back_payment_button
+
+
+class ForXrocket(CreatorMessages):
+    def text(self):
+        return ('<b>♻️ Оплата будет производиться через</b> <a href="https://t.me/@tonRocketBot">xRocket</a> \n'
+                f'<b>❗ Валюта для оплаты:</b> <i>{self.kwargs['currency']}</i>\n\n'
                 '✍️ <b>Введите сумму пополнения:</b>')
-    xrocket = ('<b>♻️ Оплата будет производиться через</b> <a href="https://t.me/@tonRocketBot">xRocket</a> \n'
-               '<b>❗ Валюта для оплаты:</b> <i>RUB</i>\n\n'
-               '✍️ <b>Введите сумму пополнения:</b>')
-    back_keyboard = {ShortButton.BACK: 'payment'}
+
+    def buttons(self):
+        return {ShortButton.BACK: 'xrocket'}
+
+
+class PaymentMessage(CreatorMessages):
+    def text(self):
+        amount = self.kwargs["amount"]
+        currency = self.kwargs.get("currency")
+        if currency is None:
+            currency = "RUB"
+        return f"<b>Оплатите {amount} {currency} по кнопке ниже!</b>"
+
+    def buttons(self):
+        url = self.kwargs["invoice_url"]
+        amount = self.kwargs["amount"]
+        currency = self.kwargs.get("currency")
+        if currency is None:
+            currency = "RUB"
+        return {f"Оплатить {amount} {currency}": url,
+                ShortButton.BACK: "payment"}
+
+
+class UpBalance(CreatorMessages):
+
+    def text(self):
+        amount = self.kwargs['amount']
+        return f"<b>Ваш баланс успешно пополнен на сумму {amount} RUB</b>"
+
+    def buttons(self):
+        return ShortButton.BACK_PROFILE
+
+
+class NoPayment(CreatorMessages):
+
+    def text(self):
+        return "<b>По какой-то причине ваш платеж не прошел или не был оплачен.</b>"
+
+    def buttons(self):
+        return None
+
 
 
 
