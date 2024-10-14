@@ -26,7 +26,10 @@ class SendUser:
             pass
 
     async def _if_message(self, event, photo):
-        await event.delete()
+        try:
+            await event.delete()
+        except TelegramBadRequest:
+            pass
         if photo is None:
             await event.answer(text=self.text, reply_markup=self.reply_markup)
         else:
