@@ -1,22 +1,26 @@
 import asyncio
 import random
+from abc import ABC, abstractmethod
+from typing import List
 
 import xrocket
 from aiocryptopay import AioCryptoPay, Networks
 from aiocryptopay.const import PaidButtons, CurrencyType
 from aiocryptopay.models.invoice import Invoice
+from aiocryptopay.models.rates import ExchangeRate
 from aiogram.types import Message
+from aioyoomoney import Quickpay, Client
+from aioyoomoney.enums.quickpay import PaymentType
 
-from proxy_bot.complex_classes.payments.exceptions import UnderZeroError, WrongAmountError
+from proxy_bot.complex_classes.payments.exceptions import UnderZeroError, WrongAmountError, XRocketException
 from proxy_bot.settings import settings
 
 CRYPTOBOT = AioCryptoPay(token=settings.CRYPTOBOT_TOKEN, network=Networks.MAIN_NET)
 XROCKET = xrocket.PayAPI(settings.XROCKET_TOKEN)
+YOOMONEY = Client(settings.YOOMONEY_TOKEN)
 
 
-class CryptoBotPay:
-    accepted_assets = ['USDT', 'USDC', 'BTC', 'ETH', 'LTC', 'TRX', 'TON', ]
-
+class PayBase(ABC):
     def __init__(self, amount: float):
         self.amount = amount
         self.invoice_id = None
@@ -26,7 +30,26 @@ class CryptoBotPay:
         id_check = random.randint(10000, 9999999)
         return id_check
 
-    async def _create_invoice(self) -> Invoice:
+    @abstractmethod
+    async def create_invoice(self):
+        pass
+
+    @abstractmethod
+    async def get_invoice_url(self):
+        pass
+
+    @abstractmethod
+    async def check_payment(self) -> bool:
+        pass
+
+
+class CryptoBotPay(PayBase):
+    accepted_assets = ['USDT', 'USDC', 'BTC', 'ETH', 'LTC', 'TRX', 'TON', ]
+
+    def __init__(self, amount: float):
+        super().__init__(amount=amount)
+
+    async def create_invoice(self) -> Invoice:
         return await CRYPTOBOT.create_invoice(fiat='RUB',
                                               currency_type=CurrencyType.FIAT,
                                               amount=self.amount,
@@ -36,7 +59,7 @@ class CryptoBotPay:
                                               accepted_assets=self.accepted_assets)
 
     async def get_invoice_url(self) -> str:
-        invoice = await self._create_invoice()
+        invoice = await self.create_invoice()
         self.invoice_id = invoice.invoice_id
         return invoice.bot_invoice_url
 
@@ -53,27 +76,97 @@ class CryptoBotPay:
             count -= 1
 
 
-class XRocketPay:
-    pass
+class YooMoneyPay(PayBase):
+
+    def __init__(self, amount: float):
+        super().__init__(amount=amount)
+
+    async def create_invoice(self):
+        self.invoice_id = self.create_id_check()
+        quick_pay = Quickpay(
+            receiver=settings.RECEIVER_YOOMONEY,
+            sum=self.amount,
+            payment_type=PaymentType.AC,
+            label=f'{self.invoice_id}'
+        )
+        async with quick_pay as pay:
+            return str(pay.url)
+
+    async def get_invoice_url(self):
+        return await self.create_invoice()
+
+    async def check_payment(self):
+        count = 120
+        while True:
+            history = await YOOMONEY.operation_history()
+            labels = [operation.label for operation in history.operations]
+            if str(self.invoice_id) in labels:
+                return True
+            else:
+                await asyncio.sleep(5)
+                if count < 0:
+                    return False
+            count -= 1
 
 
-class YooMoneyPay:
-    pass
+class XRocketPay(PayBase, ABC):
+    accepted_assets = ["TONCOIN", "BTC", "USDT", "TRX", "ETH", "BNB"]
+
+    def __init__(self, amount: float, currency: str):
+        self.currency = currency
+        self.amount_for_balance = None
+        super().__init__(amount=amount)
+
+    async def create_invoice(self):
+        await self.exchange()
+        return await XROCKET.invoice_create(currency=self.currency,
+                                            amount=self.amount)
+
+    async def get_invoice_url(self):
+        data: dict = await self.create_invoice()
+        if not data.get('success'):
+            raise XRocketException()
+        self.invoice_id = data['data']['id']
+        return data['data']['link']
+
+    async def check_payment(self):
+        count = 120
+        while True:
+            history = await XROCKET.invoice_info(self.invoice_id)
+            if history.get('success'):
+                if history['data']['paid'] is not None:
+                    await XROCKET.invoice_delete(self.invoice_id)
+                    return True
+                else:
+                    await asyncio.sleep(5)
+                    if count < 0:
+                        return False
+                count -= 1
+            else:
+                break
+
+    async def exchange(self):
+        ex: List[ExchangeRate] = await CRYPTOBOT.get_exchange_rates()
+        if self.currency == "TONCOIN":
+            self.currency = "TON"
+        for item in ex:
+            if item.source == self.currency and item.target == "RUB":
+                self.amount_for_balance = self.amount * item.rate
 
 
 class Pay:
-    def __init__(self, msg: Message, payment: str):
+    def __init__(self, msg: Message, payment: str, currency: str = None):
         self.msg = msg
-        self.amount = self.is_right_amount(msg)
+        self.amount = self._is_right_amount(msg)
         if payment == 'cryptobot':
             self.payment = CryptoBotPay(self.amount)
         elif payment == 'yoomoney':
-            self.payment = YooMoneyPay()
+            self.payment = YooMoneyPay(self.amount)
         else:
-            self.payment = XRocketPay()
+            self.payment = XRocketPay(self.amount, currency)
 
     @staticmethod
-    def is_right_amount(msg):
+    def _is_right_amount(msg):
         try:
             amount = float(msg.text)
             if amount <= 0:
@@ -82,78 +175,7 @@ class Pay:
         except ValueError:
             raise WrongAmountError()
 
-# class CryptoBotPay:
-#     accepted_assets = ['USDT', 'USDC', 'BTC', 'ETH', 'LTC', 'TRX', 'TON', ]
-#
-#     def __init__(
-#             self,
-#             msg: Message,
-#             shop_asset: str = 'RUB',
-#             back_url: Optional[str] = None
-#     ):
-#         """
-#         Класс для оплаты через систему криптобот.
-#         :param msg: Сообщение с суммой от пользователя.
-#         :param shop_asset: Валюта магазина: RUB or USD
-#         """
-#         self.msg = msg
-#         self.name = 'CryptoBot'
-#         self.user_id = self.msg.from_user.id
-#         self.amount = 0
-#         self.invoice: Optional[Invoice] = None
-#         self.invoice_id = None
-#         self.shop_asset = shop_asset
-#         self.back_url = back_url
-#
-#     @staticmethod
-#     async def exchange(usdt: Optional[float] = None):
-#         ex = await crypto.get_exchange_rates()
-#         course = round(ex[0].rate, 2)
-#         if usdt is not None:
-#             return usdt * course * 0.97
-#         return course * 0.97
-#
-#     @staticmethod
-#     def create_id_check():
-#         id_check = random.randint(10000, 9999999)
-#         return id_check
-#
-#     async def _get_amount(self):
-#         try:
-#             amount = float(self.msg.text)
-#             if amount <= 0:
-#                 raise UnderZeroError()
-#             else:
-#                 self.amount = amount
-#         except ValueError:
-#             raise WrongAmountError()
-#
-#     async def _create_invoice(self):
-#         self.invoice: Invoice = await crypto.create_invoice(fiat=self.shop_asset,
-#                                                             currency_type=CurrencyType.FIAT,
-#                                                             amount=self.amount,
-#                                                             description=f'#{self.create_id_check()}',
-#                                                             paid_btn_name=PaidButtons.OPEN_BOT,
-#                                                             paid_btn_url=self.back_url,
-#                                                             accepted_assets=self.accepted_assets)
-#
-#     async def _init_payment(self):
-#         await self._get_amount()
-#         await self._create_invoice()
-#
-#     async def get_url(self):
-#         await self._init_payment()
-#         self.invoice_id = self.invoice.invoice_id
-#         return self.invoice.bot_invoice_url
-#
-#     async def check_payment_cryptobot(self) -> bool:
-#         count = 120
-#         while True:
-#             check_invoice = await crypto.get_invoices(invoice_ids=self.invoice_id)
-#             if check_invoice.status == 'paid':
-#                 return True
-#             else:
-#                 await asyncio.sleep(5)
-#                 if count < 0:
-#                     return False
-#             count -= 1
+
+if __name__ == '__main__':
+    x = XRocketPay(1, '')
+    print(asyncio.run(x.exchange()))
