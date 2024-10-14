@@ -19,7 +19,7 @@ class Keyboard:
             keyboard = InlineKeyboardBuilder()
             for text, callback in buttons.items():
                 if 'https' in callback:
-                    keyboard.add(InlineKeyboardButton(text=text, url=callback))
+                    keyboard.add(InlineKeyboardButton(text=text, url=f'{callback}'))
                 else:
                     keyboard.add(InlineKeyboardButton(text=text, callback_data=callback))
             return keyboard.adjust(size).as_markup()
