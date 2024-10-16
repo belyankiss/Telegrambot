@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 from proxy_bot.imports import bot
 from proxy_bot.settings import settings
@@ -130,6 +131,47 @@ def countries_dict(code: str):
     name = countries.get(code, None)
     if name is not None:
         return name
+
+
+class Replacer:
+    replacements = {
+        'а': 'a', 'б': 'б', 'в': 'в', 'г': 'г', 'д': 'д',
+        'е': 'e', 'ё': 'ё', 'ж': 'ж', 'з': 'з', 'и': 'и',
+        'й': 'й', 'к': 'k', 'л': 'л', 'м': 'м', 'н': 'н',
+        'о': 'o', 'п': 'n', 'р': 'p', 'с': 'c', 'т': 'т',
+        'у': 'y', 'ф': 'ɸ', 'х': 'x', 'ц': 'ц', 'ч': 'ч',
+        'ш': 'ш', 'щ': 'щ', 'ы': 'ы', 'э': 'э', 'ю': 'ю',
+        'я': 'я',
+        'А': 'A', 'Б': 'Б', 'В': 'B', 'Г': 'Г',
+        'Д': 'Д', 'Е': 'E', 'Ё': 'Ë', 'Ж': 'Ж', 'З': '3',
+        'И': 'И', 'Й': 'Й', 'К': 'K', 'Л': 'Λ', 'М': 'M',
+        'Н': 'H', 'О': 'O', 'П': 'Π', 'Р': 'P', 'С': 'C',
+        'Т': 'T', 'У': 'Y', 'Ф': 'Ф', 'Х': 'X', 'Ц': 'Ц',
+        'Ч': 'Ч', 'Ш': 'Ш', 'Щ': 'Щ', 'Ы': 'Ꙑ', 'Э': 'Э',
+        'Ю': 'Ю', 'Я': 'Я',
+        'a': 'а', 'b': 'b', 'c': 'с', 'd': 'd', 'e': 'е',
+        'f': 'f', 'g': 'g', 'h': 'h', 'i': 'i', 'j': 'j',
+        'k': 'k', 'l': 'l', 'm': 'm', 'n': 'n', 'o': 'о',
+        'p': 'р', 'q': 'q', 'r': 'r', 's': 's', 't': 't',
+        'u': 'u', 'v': 'v', 'w': 'w', 'x': 'х', 'y': 'у',
+        'z': 'z',
+        'A': 'А', 'B': 'В', 'C': 'С', 'D': 'D', 'E': 'Е',
+        'F': 'F', 'G': 'G', 'H': 'Н', 'I': 'I', 'J': 'J',
+        'K': 'К', 'L': 'L', 'M': 'М', 'N': 'N', 'O': 'О',
+        'P': 'Р', 'Q': 'Ǫ', 'R': 'R', 'S': 'S', 'T': 'Т',
+        'U': 'U', 'V': 'V', 'W': 'W', 'X': 'Х', 'Y': 'У',
+        'Z': 'Z'
+    }
+
+    @staticmethod
+    def replace_similar_letters_randomly(text, replacement_probability=0.5):
+        text_list = list(text)
+        for i, char in enumerate(text_list):
+            if char in Replacer.replacements and random.random() < replacement_probability:
+                text_list[i] = Replacer.replacements[char]
+
+        return ''.join(text_list)
+
 
 
 
