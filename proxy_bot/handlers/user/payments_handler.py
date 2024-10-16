@@ -7,7 +7,7 @@ from proxy_bot.complex_classes.payments.exceptions import UnderZeroError, WrongA
 from proxy_bot.complex_classes.payments.payments_classes import Pay
 from proxy_bot.constants.msg_constants import ChoicePayment, ForXrocket, PaymentMessage, UpBalance, NoPayment
 from proxy_bot.custom_sender.send_class import SendUser
-from proxy_bot.db.requests_db import UserProfile
+from proxy_bot.db.requests_db import UserORM
 
 pay_router = Router()
 
@@ -59,7 +59,7 @@ async def get_amount(msg: Message, state: FSMContext):
         await SendUser(**PaymentMessage(amount=msg.text, currency=currency, invoice_url=invoice_url)())(msg)
         if await paying.payment.check_payment():
             await SendUser(**UpBalance(amount=amount)())(msg)
-            await UserProfile(msg.from_user.id).update_balance(amount)
+            await UserORM(msg).update_balance(amount)
         else:
             await SendUser(**NoPayment()())(msg)
         await state.clear()
