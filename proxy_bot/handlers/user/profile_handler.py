@@ -9,7 +9,7 @@ from proxy_bot.cache_class.wrapper_to_user import user_information
 from proxy_bot.constants.msg_constants import MainProfile, UserPurchasesPage, ForSinglePurchase, ChoosePayment, \
     WriteToAdministration
 from proxy_bot.custom_sender.send_class import SendUser
-from proxy_bot.db.requests_db import UserProfile
+from proxy_bot.db.requests_db import UserORM
 from proxy_bot.imports import bot
 from proxy_bot.settings import settings
 
@@ -25,22 +25,19 @@ class MessageToAdmin(StatesGroup):
 @user_information
 async def profile_1(event: Union[Message, CallbackQuery], state: FSMContext):
     await state.clear()
-    user_profile = UserProfile(event.from_user.id)
-    data_for_profile = await user_profile.get_info_user_for_profile()
+    data_for_profile = await UserORM(event).user_profile_info()
     await SendUser(**MainProfile(user_data=data_for_profile)())(event)
 
 
 @profile_router.callback_query(F.data == 'purchases')
 async def profile_2(call: CallbackQuery):
-    user_profile = UserProfile(call.from_user.id)
-    list_purchases = await user_profile.get_user_purchases()
+    list_purchases = await UserORM(call).get_user_purchases()
     await SendUser(**UserPurchasesPage(list_purchases=list_purchases)())(call)
 
 
 @profile_router.callback_query(F.data.startswith('purchase_user'))
 async def profile_3(call: CallbackQuery):
-    user_profile = UserProfile(call.from_user.id)
-    data_purchase = await user_profile.get_one_purchase(int(call.data.split(':')[1]))
+    data_purchase = await UserORM(call).get_one_purchase(int(call.data.split(':')[1]))
     await SendUser(**ForSinglePurchase(data_purchase=data_purchase)())(call)
 
 
