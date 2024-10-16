@@ -1,5 +1,4 @@
 from datetime import datetime
-from datetime import datetime
 from typing import Optional, Union, List, Tuple
 
 from aiogram.types import Message, CallbackQuery
@@ -9,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from proxy_bot.constants.msg_constants import ForAdminAfterRegistration, ShortButton
 from proxy_bot.custom_sender.send_class import SendAdmins
 from proxy_bot.db.create_async_session import async_session
-from proxy_bot.db.models import User, Purchase
+from proxy_bot.db.models import User, Purchase, Discount
 from proxy_bot.helpers import countries_dict
 
 
@@ -103,6 +102,17 @@ class UserORM(BaseSession):
             user.balance += round(amount, 2)
             await session.commit()
 
+    async def save_discount(self, discount: float, name_discount: str):
+        async with self.session() as session:
+            user = await self.is_exist_user(session)
+            user.discount = discount
+            if user.activated_list is None:
+                user.activated_list = f"{name_discount},"
+            else:
+                user.activated_list += f"{name_discount},"
+            await session.commit()
+
+
 
 class PurchaseORM:
     def __init__(self, user_id: int):
@@ -148,3 +158,18 @@ class PurchaseORM:
             }
 
         return data
+
+
+class DiscountORM(BaseSession):
+    def __init__(self):
+        super().__init__()
+
+    async def get_discounts(self, name: str) -> Optional[Discount]:
+        async with self.session() as session:
+            return await session.scalar(select(Discount).where(Discount.name.is_(name)))
+
+    async def change_discount_count(self, name: str):
+        async with self.session() as session:
+            discount = await session.scalar(select(Discount).where(Discount.name.is_(name)))
+            discount.activates -= 1
+            await session.commit()

@@ -269,6 +269,73 @@ class NoPayment(CreatorMessages):
         return None
 
 
+# _______________________________________________________________________________________________________________________
+
+# unique_page_messages
+
+class MainMessageUnique(CreatorMessages):
+
+    def text(self):
+        return ('<b>✍ Введите текст для его уникализации:</b>\n\n'
+                '<i>Вы можете отправлять текст постоянно</i>')
+
+    def buttons(self):
+        return None
+
+
+class GoodUniqueMessage(CreatorMessages):
+
+    def text(self):
+        counter = self.kwargs.get('counter', False)
+        unique_text = self.kwargs['unique_text']
+        if counter:
+            return (f'<b>Уникализированный текст - {counter}</b>\n\n'
+                    f'<code>{unique_text}</code>')
+        return ('<b>Уникализированный текст</b>\n\n'
+                f'<code>{unique_text}</code>')
+
+    def buttons(self):
+        return {'❔ Переуникализировать?': 'unique_again'}
+
+
+class WrongUniqueMessage(CreatorMessages):
+
+    def text(self):
+        return '<b>Вы должны были отправить текст!!!</b>'
+
+    def buttons(self):
+        return None
+
+
+# _______________________________________________________________________________________________________________________
+
+# Discount page
+
+class GetDiscountNameMessage(CreatorMessages):
+
+    def text(self):
+        return '<b>✍ Введите промокод на скидку: </b>'
+
+    def buttons(self):
+        return None
+
+
+class DiscountActivateSuccess(CreatorMessages):
+
+    def text(self):
+        percentage = self.kwargs['percentage'] * 100
+        return f"Вы активировали скидку {percentage}%!"
+
+    def buttons(self):
+        return None
+
+
+
+
+
+
+
+
 
 
 
