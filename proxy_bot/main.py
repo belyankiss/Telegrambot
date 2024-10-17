@@ -9,6 +9,7 @@ from proxy_bot.db.models import create_tables
 from proxy_bot.handlers.user.discount_handler import discount_router
 from proxy_bot.handlers.user.payments_handler import pay_router
 from proxy_bot.handlers.user.profile_handler import profile_router
+from proxy_bot.handlers.user.proxies_handler import proxy_router
 from proxy_bot.handlers.user.start_handler import start_router
 from proxy_bot.handlers.user.unique_handler import unique_router
 from proxy_bot.imports import dp, bot
@@ -20,8 +21,11 @@ async def main() -> None:
     dp.include_routers(start_router,
                        profile_router,
                        pay_router,
+                       proxy_router,
+                       discount_router,
                        unique_router,
-                       discount_router)
+                       )
+    print(Constant.ADMINS, len(Constant.PROXIES_WORK))
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)  # Запуск long-polling
 

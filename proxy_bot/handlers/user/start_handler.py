@@ -18,20 +18,20 @@ async def send_start(msg: Message):
     user = UserORM(msg)
     await user.create_user()
     if await check_member_user(msg.from_user.id):
-        await SendUser(**Start(username=msg.from_user.username)())(msg)
+        await SendUser(Start(username=msg.from_user.username))(msg)
     else:
-        await SendUser(**UserNotMember()())(msg)
+        await SendUser(UserNotMember())(msg)
 
 
 @start_router.callback_query(F.data == 'check_subscribe')
 @user_information
 async def checking_subscribed(call: CallbackQuery):
     if await check_member_user(call.from_user.id):
-        await SendUser(**Start(username=call.from_user.username)(), delete=True)(call.message)
+        await SendUser(Start(username=call.from_user.username))(call.message)
     else:
-        await SendUser(**UserNotSubscribe()(), delete=True)(call)
+        await SendUser(UserNotSubscribe())(call)
 
 
 @start_router.message(F.text == '/admin', F.chat.type == "private", F.from_user.id.in_(Constant.ADMINS))
 async def admin_panel(msg: Message):
-    await SendUser(**AdminPanel()())(msg)
+    await SendUser(AdminPanel())(msg)

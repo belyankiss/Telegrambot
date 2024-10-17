@@ -20,20 +20,20 @@ class Amount(StatesGroup):
 async def pay_cryptobot(call: CallbackQuery, state: FSMContext):
     await state.set_state(Amount.amount)
     await state.update_data(payment=call.data)
-    await SendUser(**ChoicePayment(payment=call.data)())(call)
+    await SendUser(ChoicePayment(payment=call.data))(call)
 
 
 @pay_router.callback_query(F.data == 'yoomoney')
 async def pay_yoomoney(call: CallbackQuery, state: FSMContext):
     await state.set_state(Amount.amount)
     await state.update_data(payment=call.data)
-    await SendUser(**ChoicePayment(payment=call.data)())(call)
+    await SendUser(ChoicePayment(payment=call.data))(call)
 
 
 @pay_router.callback_query(F.data == 'xrocket')
 async def pay_xrocket(call: CallbackQuery, state: FSMContext):
     await state.update_data(payment=call.data)
-    await SendUser(**ChoicePayment(payment=call.data)())(call)
+    await SendUser(ChoicePayment(payment=call.data))(call)
 
 
 @pay_router.callback_query(F.data.startswith("x_cur"))
@@ -41,7 +41,7 @@ async def pay_xrocket(call: CallbackQuery, state: FSMContext):
     currency = call.data.split(":")[1]
     await state.set_state(Amount.amount)
     await state.update_data(currency=currency)
-    await SendUser(**ForXrocket(currency=currency)())(call)
+    await SendUser(ForXrocket(currency=currency))(call)
 
 
 @pay_router.message(Amount.amount)
@@ -56,12 +56,12 @@ async def get_amount(msg: Message, state: FSMContext):
             amount: float = paying.payment.amount_for_balance
         else:
             amount = float(msg.text)
-        await SendUser(**PaymentMessage(amount=msg.text, currency=currency, invoice_url=invoice_url)())(msg)
+        await SendUser(PaymentMessage(amount=msg.text, currency=currency, invoice_url=invoice_url))(msg)
         if await paying.payment.check_payment():
-            await SendUser(**UpBalance(amount=amount)())(msg)
+            await SendUser(UpBalance(amount=amount))(msg)
             await UserORM(msg).update_balance(amount)
         else:
-            await SendUser(**NoPayment()())(msg)
+            await SendUser(NoPayment())(msg)
         await state.clear()
 
     except (UnderZeroError, WrongAmountError, XRocketException) as e:

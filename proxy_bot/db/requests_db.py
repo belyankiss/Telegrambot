@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from proxy_bot.constants.msg_constants import ForAdminAfterRegistration, ShortButton
 from proxy_bot.custom_sender.send_class import SendAdmins
 from proxy_bot.db.create_async_session import async_session
-from proxy_bot.db.models import User, Purchase, Discount
+from proxy_bot.db.models import User, Purchase, Discount, Admin, ProxyWork, Photo
 from proxy_bot.helpers import countries_dict
 
 
@@ -58,7 +58,7 @@ class UserORM(BaseSession):
                 await self._update_date_username_active(session, user)
             else:
                 await self._add_user(session)
-                await SendAdmins().to_all_admins(ForAdminAfterRegistration(username=self.username).text())
+                await SendAdmins().to_all_admins(ForAdminAfterRegistration(username=self.username).text)
 
     async def is_blocked_user(self) -> bool:
         async with self.session() as session:
@@ -173,3 +173,25 @@ class DiscountORM(BaseSession):
             discount = await session.scalar(select(Discount).where(Discount.name.is_(name)))
             discount.activates -= 1
             await session.commit()
+
+
+class ProxyWorkORM(BaseSession):
+    def __init__(self):
+        super().__init__()
+
+    async def get_proxies(self):
+        async with self.session() as session:
+            return list(await session.scalars(select(ProxyWork)
+                                              .where(ProxyWork.work.is_(True) & ProxyWork.used.is_(False))))
+
+
+class AdminsORM:
+    @staticmethod
+    async def get_admins():
+        async with async_session() as session:
+            return await session.scalars(select(Admin.user_id))
+
+
+async def load_photos():
+    async with async_session() as session:
+        return list(await session.scalars(select(Photo)))

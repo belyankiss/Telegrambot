@@ -4,7 +4,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 
 from proxy_bot.cache_class.wrapper_to_user import user_information
-from proxy_bot.constants.msg_constants import MainMessageUnique, GoodUniqueMessage, WrongUniqueMessage
+from proxy_bot.constants.msg_constants import MainMessageUnique, GoodUniqueMessage, WrongUniqueMessage, MenuButton
 from proxy_bot.custom_sender.send_class import SendUser
 from proxy_bot.helpers import Replacer
 
@@ -15,12 +15,12 @@ class UniqueText(StatesGroup):
     text = State()
 
 
-@unique_router.message(F.text == '🔤 Уникализатор')
+@unique_router.message(F.text == MenuButton.UNIQUE)
 @user_information
 async def unique_1(msg: Message, state: FSMContext):
     await state.clear()
     await state.set_state(UniqueText.text)
-    await SendUser(**MainMessageUnique()())(msg)
+    await SendUser(MainMessageUnique())(msg)
 
 
 @unique_router.message(UniqueText.text)
@@ -45,4 +45,4 @@ async def unique_3(call: CallbackQuery, state: FSMContext):
         counter = 1
     unique_text = Replacer.replace_similar_letters_randomly(text_from_user)
     await state.update_data(counter=counter)
-    await SendUser(**GoodUniqueMessage(counter=counter, unique_text=unique_text)())(call)
+    await SendUser(GoodUniqueMessage(counter=counter, unique_text=unique_text))(call)

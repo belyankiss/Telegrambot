@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, Union
 
+from proxy_bot.constants.load_constants import Constant
 from proxy_bot.settings import settings
 
 
@@ -23,6 +24,7 @@ class MenuButton:
     DISCOUNT = '🧑‍💻 Промокоды'
 
 
+
 class CreatorMessages:
     text: Optional[str] = None
     buttons: Optional[Union[list, dict]] = None
@@ -32,6 +34,7 @@ class CreatorMessages:
         self.args = args
         self.kwargs = kwargs
         self.size = 1
+        self.photo = Constant.PHOTOS.get('default', False)
         self.text = self.create_text() or type(self).text
         self.buttons = self.create_buttons() or type(self).buttons
 
@@ -53,6 +56,7 @@ class CreatorMessages:
 
 class Start(CreatorMessages):
     def create_text(self) -> str:
+        self.photo = Constant.PHOTOS.get('menu', False)
         return (f"👋 Привет, {self.kwargs['username']}\n\n"
                 "<u>❗Обязательно ознакомься с правилами нашего магазина, можешь прочитать</u> "
                 f"<a href='{settings.URL_RULES}'>👉 "
@@ -65,15 +69,14 @@ class Start(CreatorMessages):
 
 
 class UserNotMember(CreatorMessages):
+    photo = Constant.PHOTOS.get('default', False)
     text = "👁 Для пользования ботом, тебе необходимо подписаться на канал ниже! 👇"
-
     buttons = {f'Подписаться {settings.CHAT_NAME}': settings.CHAT_SUB_LINK,
                 '✅ Подписался': 'check_subscribe'}
 
 
 class UserNotSubscribe(CreatorMessages):
     text = "❌ Вы меня не обманете! Тебе необходимо подписаться на канал ниже для пользования ботом! 👇"
-
     buttons = UserNotMember.buttons
 
 
@@ -93,13 +96,19 @@ class ForAdminAfterRegistration(CreatorMessages):
 
 
 class AdminPanel(CreatorMessages):
-    text = "<b>🏦 МЕНЮ АДМИНИСТРАТОРА 🏦</b>"
-
-    buttons = ['📨 Сделать рассылку', '❓ Информация о пользователе',
-                   '📊 Статистика бота', '👑 Добавить администратора',
-                   '💰 Добавить промокод', '⚙ Управление промокодами',
-                   '⚙ Настройки фото']
     size = 2
+
+    def create_text(self) -> Optional[str]:
+        self.photo = Constant.PHOTOS.get('menu', False)
+        return "<b>🏦 МЕНЮ АДМИНИСТРАТОРА 🏦</b>"
+
+    def create_buttons(self) -> Optional[Union[list, dict]]:
+        self.size = 2
+        return ['📨 Сделать рассылку', '❓ Информация о пользователе',
+                '📊 Статистика бота', '👑 Добавить администратора',
+                '💰 Добавить промокод', '⚙ Управление промокодами',
+                '⚙ Настройки фото']
+
 
 
 
@@ -108,7 +117,6 @@ class AdminPanel(CreatorMessages):
 # messages for profile page
 
 class MainProfile(CreatorMessages):
-
     def create_text(self):
         user_data = self.kwargs['user_data']
         return (f"<b>Профиль пользователя @{user_data['username']}\n\n"
@@ -150,7 +158,6 @@ class UserPurchasesPage(CreatorMessages):
 
 
 class ForSinglePurchase(CreatorMessages):
-
     def create_text(self):
         data_purchase = self.kwargs['data_purchase']
         if len(data_purchase) == 8:
@@ -248,7 +255,6 @@ class PaymentMessage(CreatorMessages):
 
 
 class UpBalance(CreatorMessages):
-
     def create_text(self):
         amount = self.kwargs['amount']
         return f"<b>Ваш баланс успешно пополнен на сумму {amount} RUB</b>"
@@ -266,13 +272,15 @@ class NoPayment(CreatorMessages):
 # unique_page_messages
 
 class MainMessageUnique(CreatorMessages):
-    text = ('<b>✍ Введите текст для его уникализации:</b>\n\n'
+    def create_text(self) -> Optional[str]:
+        self.photo = False
+        return ('<b>✍ Введите текст для его уникализации:</b>\n\n'
                 '<i>Вы можете отправлять текст постоянно</i>')
 
 
 class GoodUniqueMessage(CreatorMessages):
-
     def create_text(self):
+        self.photo = False
         counter = self.kwargs.get('counter', False)
         unique_text = self.kwargs['unique_text']
         if counter:
@@ -301,7 +309,6 @@ class GetDiscountNameMessage(CreatorMessages):
 
 
 class DiscountActivateSuccess(CreatorMessages):
-
     def create_text(self):
         percentage = self.kwargs['percentage'] * 100
         return f"Вы активировали скидку {percentage}%!"
@@ -312,7 +319,6 @@ class DiscountActivateSuccess(CreatorMessages):
 # Proxy page
 
 class MainProxyPage(CreatorMessages):
-
     def create_text(self):
         return ('<b>❗️ Выберите тип прокси:</b>\n\n'
                 '👨‍💻 <u><b>Work mode</b></u> - <i>отлично подходят для ворка 🇪🇺 Fiverr  и '

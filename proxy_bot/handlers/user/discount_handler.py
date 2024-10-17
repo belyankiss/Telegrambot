@@ -9,7 +9,7 @@ from proxy_bot.complex_classes.discounts.exceptions import (NotDiscountTextError
                                                             UserHaveDiscountError,
                                                             DiscountWasActivatedError,
                                                             NotActivatesError)
-from proxy_bot.constants.msg_constants import GetDiscountNameMessage, DiscountActivateSuccess
+from proxy_bot.constants.msg_constants import GetDiscountNameMessage, DiscountActivateSuccess, MenuButton
 from proxy_bot.custom_sender.send_class import SendUser
 
 discount_router = Router()
@@ -19,11 +19,11 @@ class Discount(StatesGroup):
     discount = State()
 
 
-@discount_router.message(F.text == '🧑‍💻 Промокоды')
+@discount_router.message(F.text == MenuButton.DISCOUNT)
 async def discount_1(msg: Message, state: FSMContext):
     await state.clear()
     await state.set_state(Discount.discount)
-    await SendUser(**GetDiscountNameMessage()())(msg)
+    await SendUser(GetDiscountNameMessage())(msg)
 
 
 @discount_router.message(Discount.discount)
@@ -32,11 +32,11 @@ async def discount_2(msg: Message, state: FSMContext):
     try:
         discount = ActivateDiscount(msg)
         percentage = await discount.activate()
-        text = DiscountActivateSuccess(percentage=percentage).text()
+        text = DiscountActivateSuccess(percentage=percentage).text
     except (NotDiscountTextError,
             DiscountNotInBaseError,
             UserHaveDiscountError,
             DiscountWasActivatedError,
             NotActivatesError) as e:
         text = e.text
-    await SendUser(text=text, delete=True)(msg)
+    await SendUser(text=text)(msg)

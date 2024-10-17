@@ -165,6 +165,8 @@ class Replacer:
 
     @staticmethod
     def replace_similar_letters_randomly(text, replacement_probability=0.5):
+        if text is None:
+            return "Введите текст!!!"
         text_list = list(text)
         for i, char in enumerate(text_list):
             if char in Replacer.replacements and random.random() < replacement_probability:
