@@ -1,6 +1,10 @@
 import asyncio
 import random
 
+from aiogram.types import InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from proxy_bot.constants.load_constants import Constant
 from proxy_bot.imports import bot
 from proxy_bot.settings import settings
 
@@ -173,6 +177,37 @@ class Replacer:
                 text_list[i] = Replacer.replacements[char]
 
         return ''.join(text_list)
+
+
+def pagination(callback_data: str, back_page: str):
+    from proxy_bot.constants.msg_constants import ShortButton
+
+    if ':' in callback_data:
+        page = int(callback_data.split(':')[1])
+        clean_callback_data = callback_data.split(':')[0]
+    else:
+        page = 0
+        clean_callback_data = callback_data
+    keyboard = InlineKeyboardBuilder()
+    default_button = InlineKeyboardButton(text='...', callback_data='None')
+    pages = len(Constant.COUNTRIES_CODES) // 15
+    if page < 0:
+        page = pages
+    if page == pages + 1:
+        page = 0
+    if page <= pages:
+        for code in Constant.COUNTRIES_CODES[15 * page: 15 * page + 15]:
+            button = InlineKeyboardButton(text=f'{countries_dict(code)}', callback_data=f'country:{code}')
+            keyboard.add(button)
+        if not len(Constant.COUNTRIES_CODES[15 * page: 15 * page + 15]) // 15:
+            keyboard.add(default_button)
+    previous = InlineKeyboardButton(text='<<', callback_data=f'{clean_callback_data}:{page - 1}')
+    counter = InlineKeyboardButton(text=f'{page + 1}/{pages + 1}', callback_data='None')
+    next_b = InlineKeyboardButton(text='>>', callback_data=f'{clean_callback_data}:{page + 1}')
+    back_button = InlineKeyboardButton(text=ShortButton.BACK, callback_data=f'{back_page}')
+    keyboard.add(previous, counter, next_b)
+    keyboard.add(back_button)
+    return keyboard.adjust(3).as_markup()
 
 
 
