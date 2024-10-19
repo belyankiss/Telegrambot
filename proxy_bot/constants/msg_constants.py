@@ -2,19 +2,24 @@ from datetime import datetime
 from typing import Optional, Union
 
 from proxy_bot.constants.load_constants import Constant
+from proxy_bot.db.models import ProxyWork, ProxySort
+from proxy_bot.helpers import countries_dict, pagination
 from proxy_bot.settings import settings
 
 
 class ShortButton:
     BACK = '🔙 Назад'
-    work = '👨‍💻 Для ворка'
-    scrolling = '🤔 Для скроллинга'
+    work = '👨‍💻 Work mode'
+    sort = '🗺 Work mode (sort)'
+    scrolling = '🤔 Scrolling'
     MAIN_PAGE = "🔙 На главную"
     CANCEL = "❌ Отмена"
     AMOUNT_FOR_PAY = '💵 Оплатить {amount} USDT'
     BACK_IN_BOT = f"{BACK} {settings.NAME_BOT}"
     BACK_PROFILE = {BACK: 'profile'}
     BUY_WITH_DISCOUNT = "📉 Купить со скидкой {discount}%"
+    BACK_SORT = {BACK: "sorted_work"}
+    PROXYLINE_WORK = {"✅ Счет пополнен!": "proxyline_work"}
 
 
 class MenuButton:
@@ -349,9 +354,174 @@ class ChooseWorkProxy(CreatorMessages):
         return buttons | {ShortButton.BACK: 'shop'}
 
 
+class ChooseSortProxy(CreatorMessages):
+    def create_text(self) -> Optional[str]:
+        return (f'🏦 Стоимость прокси: <u><b>{settings.COUNTRY_PRICE_PROXY} рублей.</b></u>\n'
+                '⏲ Жизнь прокси: <u><b>5 часов.</b></u>\n\n'
+                'Выберите страну прокси:')
+
+    def create_buttons(self) -> Optional[Union[list, dict]]:
+        buttons = {}
+        if len(Constant.PROXIES_SORT) > 3:
+            self.size = 2
+        else:
+            self.size = 1
+        for key, value in Constant.PROXIES_SORT.items():
+            buttons[f'{countries_dict(key)[0:2]} - {len(value)} шт.'] = f"sort_country:{key}"
+        return buttons | {ShortButton.BACK: "shop"}
+
+
+class ChooseLenSortProxy(CreatorMessages):
+    def create_text(self) -> Optional[str]:
+        country_code = self.kwargs['country_code']
+        return (f"Доступное количество прокси для {countries_dict(country_code)} - "
+                f"{len(Constant.PROXIES_SORT.get(country_code, 0))}")
+
+    def create_buttons(self) -> Optional[Union[list, dict]]:
+        self.size = 2
+        country_code = self.kwargs['country_code']
+        items = [1, 3, 5, 7, 10, 15]
+        buttons = {}
+        for i in items:
+            if 0 < len(Constant.PROXIES_SORT.get(country_code, 0)) >= i:
+                buttons[f'{i} шт.'] = f'sort_proxy:{i}'
+        return buttons | {ShortButton.BACK: f"sorted_work"}
+
+
 class NotProxyMessage:
     text = "В данный момент прокси нет в наличии!"
-    text_for_admin = "<b>Прокси закончились в WorkMode!!!</b>"
+    text_no_work_proxy = "<b>Прокси закончились в WorkMode!!!</b>"
+    text_no_sort_proxy = "<b>Прокси закончились в WorkMode (sort)!!!</b>"
+    work_proxy_death = f"<b>Прокси {ShortButton.work} перестали работать</b>"
+    sort_proxy_death = f"<b>Прокси {ShortButton.sort} перестали работать</b>"
+
+
+class CheckingProxyText:
+    text = "<b>Идет проверка работоспособности прокси!</b>"
+    broken = "<b>❌ Прокси сломались!❗️</b>"
+
+
+class ProxyMessage(CreatorMessages):
+    def create_text(self) -> Optional[str]:
+        proxy_list: list[Union[ProxyWork, ProxySort]] = self.kwargs['proxy_list']
+        if len(proxy_list) > 7:
+            return "<b>Ввиду большого количества, прокси отправлены файлом!</b>"
+        else:
+            message = "<b>Вот ваши прокси:\n</b>"
+            for proxy in proxy_list:
+                message += f"\n<code>{proxy.host}:{proxy.port}:{proxy.username}:{proxy.password}</code>"
+            return message
+
+
+class MessageToAdminAfterBuy(CreatorMessages):
+    def create_text(self) -> Optional[str]:
+        username = self.kwargs.get('username')
+        category = self.kwargs.get('category')
+        count = self.kwargs.get('count')
+        price = self.kwargs.get('price')
+        return (f"❗️Пользователь @{username}\n\n"
+                "<b><u>Покупка прокси</u></b>\n\n"
+                f"<u>Категория</u>: <i>{category}</i>\n"
+                f"<u>Количество прокси</u>: <i>{count}</i>\n"
+                f"<u>Сумма</u>: <i>{price} рублей</i>\n"
+                f"<u>Дата</u>: {datetime.now().strftime('%d-%m-%Y %H:%M')}")
+
+
+class ProxyLineNoPlan:
+    for_error = "По выбранному тарифу прокси нет!"
+    for_not_proxy = "Тарифных планов пока нет!"
+
+
+class ChooseTypeProxy(CreatorMessages):
+    text = ('<b>❗️ Выберите тип прокси:\n'
+            '<u>IPv4 Privat</u> - дорогие и качественные прокси,\n'
+            'подходят для длительного использования, например '
+            'для ворка Facebook 🇪🇺 \n\n'
+            '<u>IPv6 Privat</u> - дешевые прокси,\n'
+            'отличный выбор для анонимной работе в браузере,\n'
+            'средняя цена 12 рублей</b>')
+
+    def create_buttons(self) -> Optional[Union[list, dict]]:
+        self.size = 2
+        return {
+            '🌍 IPv4 private': 'ipv4',
+            '🌍 IPv6 private': 'ipv6',
+            ShortButton.BACK: 'shop',
+        }
+
+
+class MainPageProxyLine(CreatorMessages):
+    def create_text(self) -> Optional[str]:
+        ip_version = self.kwargs.get("ip_version")
+        return (f'Вы выбрали 🌍 IPv{ip_version} private\n\n'
+                '❗️ Важная информация!\n\n'
+                'Из-за сложившейся в мире ситуации наблюдаются следующие ограничения:\n'
+                'Большинство RU прокси не работают из Украины\n'
+                'Эти ограничения от нас не зависят, их ввели провайдеры стран.\n'
+                'Используйте VPN третьей страны между вашим устройством и прокси.'
+                'Спасибо за понимание. Всем мира!\n\n'
+                'Выберите страну прокси:')
+
+    def create_buttons(self) -> Optional[Union[list, dict]]:
+        ip_version = self.kwargs.get("ip_version")
+        if ip_version == 4:
+            callback_data = self.kwargs['callback_data']
+            back_page = self.kwargs['back_page']
+            return pagination(callback_data=callback_data, back_page=back_page)
+        else:
+            self.size = 2
+            return {f'{countries_dict("ru")}': 'country:ru',
+                    f'{countries_dict("us")}': 'country:us',
+                    ShortButton.BACK: 'scrolling'}
+
+
+class ChoiceCountry(CreatorMessages):
+    def create_text(self) -> Optional[str]:
+        new_order = self.kwargs.get("new_order")
+        return (f"Вы выбрали: 🌍 IPv{new_order.ip_version}\n"
+                f"Страна: {countries_dict(new_order.country)}\n\n"
+                "❗️ Выберите период пользования (в днях)!")
+
+    def create_buttons(self) -> Optional[Union[list, dict]]:
+        new_order = self.kwargs.get("new_order")
+        self.size = 2
+        return {
+            '5': 'period:5',
+            '10': 'period:10',
+            '20': 'period:20',
+            '30': 'period:30',
+            ShortButton.BACK: f'ipv{new_order.ip_version}:0',
+            ShortButton.MAIN_PAGE: 'shop'
+        }
+
+
+class PreviewMessage(CreatorMessages):
+    def create_text(self) -> Optional[str]:
+        new_order = self.kwargs.get("new_order")
+        price = self.kwargs.get("price")
+        return ('Ваш заказ:\n\n'
+                f'🗺 Страна: {countries_dict(new_order.country)}\n'
+                f'🌐 Тип: IPv{new_order.ip_version} private\n'
+                f'🕖 Срок аренды: {new_order.period} дней\n'
+                f'🤌 Количество: {new_order.quantity} шт.\n\n'
+                f'🧾 Цена: {price} RUB\n')
+
+    def create_buttons(self) -> Optional[Union[list, dict]]:
+        discount = self.kwargs.get("discount")
+        new_order = self.kwargs.get("new_order")
+        keyboard = {"🤑 Купить": "buy_proxy"}
+        discount_button = {}
+        if discount is not None:
+            discount_button = {"Купить со скидкой": "buy_with_discount"}
+        back_button = {"🔙 К выбору страны": f"ipv{new_order.ip_version}",
+                       ShortButton.MAIN_PAGE: "scrolling"}
+        return keyboard | discount_button | back_button
+
+
+class ProxyLineWork(CreatorMessages):
+    text = "<b>Теперь пользователи могут покупать прокси!</b>"
+
+
 
 
 if __name__ == '__main__':
