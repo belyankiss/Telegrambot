@@ -1,7 +1,7 @@
 import asyncio
 import random
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Union
 
 import xrocket
 from aiocryptopay import AioCryptoPay, Networks
@@ -74,6 +74,13 @@ class CryptoBotPay(PayBase):
                 if count < 0:
                     return False
             count -= 1
+
+    @staticmethod
+    async def exchange(amount: Union[int, float]) -> float:
+        ex = await CRYPTOBOT.get_exchange_rates()
+        course = round(ex[0].rate, 2)
+        return course * amount
+
 
 
 class YooMoneyPay(PayBase):
